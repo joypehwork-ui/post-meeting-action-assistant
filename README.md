@@ -132,9 +132,14 @@ The app's behaviour is two strings — `extractPrompt()` in `public/js/extract.j
 whether the change worked**, so there is a harness:
 
 ```sh
-node checks/prompt-check.mjs --save-baseline    # before editing
-node checks/prompt-check.mjs --repeat=3         # after
+node checks/prompt-check.mjs --save-baseline         # before editing
+node checks/prompt-check.mjs --repeat=3              # after
+node checks/prompt-check.mjs --model=glm-5.3-flash   # against another model
 ```
+
+`--model` matters now that the picker exists: a prompt validated on DeepSeek says nothing
+about the other four. If you name a model the server does not accept, the check fails rather
+than quietly reporting a pass for the default it substituted.
 
 It imports the app's own modules, so it tests the prompt actually being sent rather than a copy
 that drifts. It checks the reply parses, matches the shape, has sane dates, has no duplicates,

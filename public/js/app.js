@@ -1,7 +1,7 @@
 // Entry point: wires the DOM to the feature modules, then boots.
 
 import { state, save, load, resetState } from "./state.js";
-import { $, clearErr } from "./util.js";
+import { $, esc, clearErr } from "./util.js";
 import { render, renderTasks, renderEdit } from "./render.js";
 import { addFiles, forgetFile, resetFiles } from "./files.js";
 import { doExtract } from "./extract.js";
@@ -12,20 +12,31 @@ import { SAMPLE } from "./sample.js";
 /* ---------------- model picker ---------------- */
 
 // The list comes from the server, which only accepts models on its allowlist.
-// If it cannot be reached the picker stays hidden and the server default is used.
+// The picker starts hidden in the markup and is only shown once the list is in:
+// if the server cannot be reached there is no picker, and the server default
+// is used.
+
+/** The model the picker falls back to. Set once the list has loaded. */
+let defaultModel = "";
+
 async function initModelPicker() {
   const sel = $("modelsel");
   try {
     const { models, default: fallback } = await getModels();
-    if (!Array.isArray(models) || !models.length) { sel.hidden = true; return; }
+    if (!Array.isArray(models) || !models.length) return;
 
-    const known = models.some((m) => m.id === state.model);
-    if (!known) state.model = fallback || models[0].id;
+    // The server's default is whatever LLM_MODEL says, which need not itself be
+    // on the allowlist. Selecting an id that has no <option> leaves the box
+    // blank, so fall through to the first listed model in that case.
+    const onList = (id) => models.some((m) => m.id === id);
+    defaultModel = onList(fallback) ? fallback : models[0].id;
+    if (!onList(state.model)) state.model = defaultModel;
 
     sel.innerHTML = models
-      .map((m) => '<option value="' + m.id + '">' + m.label + "</option>")
+      .map((m) => '<option value="' + esc(m.id) + '">' + esc(m.label) + "</option>")
       .join("");
     sel.value = state.model;
+    sel.hidden = false;
 
     sel.onchange = () => {
       state.model = sel.value;
@@ -34,6 +45,17 @@ async function initModelPicker() {
   } catch (e) {
     sel.hidden = true;   // no picker rather than a broken one
   }
+}
+
+/**
+ * resetState() blanks state.model, which would leave the dropdown naming a
+ * model the app is no longer asking for. Put both back on the default.
+ */
+function resetModelPicker() {
+  const sel = $("modelsel");
+  if (sel.hidden || !sel.options.length) return;
+  state.model = defaultModel;
+  sel.value = defaultModel;
 }
 
 /* ---------------- ingestion ---------------- */
@@ -141,6 +163,7 @@ $("clearall").onclick = () => {
   if (!ok) return;
 
   resetState();
+  resetModelPicker();
   resetFiles();
   $("input").value = "";
   $("exstatus").textContent = "";

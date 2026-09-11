@@ -5,6 +5,7 @@
 //   node checks/prompt-check.mjs --fixture=dated      just one
 //   node checks/prompt-check.mjs --save-baseline      record the current result
 //   node checks/prompt-check.mjs --port=3300          non-default server port
+//   node checks/prompt-check.mjs --model=kimi-k2.6    one of the picker's models
 //
 // Imports the app's own modules, so the thing under test is the prompt the app
 // actually sends - not a copy that drifts.
@@ -31,6 +32,9 @@ const SAVE = args.includes("--save-baseline");
 const PORT = Number(flag("port", 3000));
 const ONLY = flag("fixture", "");
 const REPEAT = Math.max(1, Number(flag("repeat", 1)));
+// The UI can now pick any model on the server's allowlist, so the checks have
+// to be able to reach them too. "" means whatever the server defaults to.
+const MODEL = flag("model", "");
 
 // pathToFileURL, not string concatenation: the path contains spaces and
 // Windows backslashes, and hand-rolled escaping has broken here before.
@@ -75,7 +79,7 @@ async function askServer(prompt) {
   const res = await fetch("http://127.0.0.1:" + PORT + "/api/llm", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ messages: [{ role: "user", content: prompt }], json: true }),
+    body: JSON.stringify({ messages: [{ role: "user", content: prompt }], json: true, model: MODEL }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || "HTTP " + res.status);
@@ -104,6 +108,12 @@ function grounding(context, source) {
 async function attempt(fx) {
   const problems = [];
   const reply = await askServer(extractPrompt(fx.text));
+
+  // The server silently substitutes its default for a model it does not allow,
+  // so a typo in --model would otherwise look like a clean run of the wrong one.
+  if (MODEL && reply.model && reply.model !== MODEL) {
+    problems.push("server ignored --model=" + MODEL + " and used " + reply.model);
+  }
 
   if (reply.finish_reason === "length") {
     problems.push("finish_reason 'length' - ran out of tokens mid-answer");

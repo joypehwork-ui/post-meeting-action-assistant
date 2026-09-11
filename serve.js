@@ -43,7 +43,10 @@ const MODELS = [
 // 4000 was not enough: a two-file transcript overflowed it on roughly one run
 // in three, which surfaced to the user as "the model ran out of output tokens".
 const MAX_TOKENS = 12000;
-const UPSTREAM_TIMEOUT_MS = 60000;
+// A four-sentence answer does not need the extraction budget. Giving it one
+// let a reasoning model run long enough to hit UPSTREAM_TIMEOUT_MS.
+const CHAT_MAX_TOKENS = 2000;
+const UPSTREAM_TIMEOUT_MS = 120000;
 
 /* ---------------- .env ---------------- */
 
@@ -170,7 +173,7 @@ async function handleLlm(req, res) {
   const payload = {
     model,
     messages,
-    max_tokens: MAX_TOKENS,
+    max_tokens: body.json ? MAX_TOKENS : CHAT_MAX_TOKENS,
     temperature: 0.2,
   };
   // Zen supports json_object. It rejects json_schema ("unavailable now"),
@@ -257,7 +260,17 @@ http.createServer((req, res) => {
     return;
   }
 
-  serveStatic(decodeURIComponent(url), res);
+  // A malformed escape ("/%zz") makes decodeURIComponent throw, and an
+  // exception here is uncaught and takes the whole server down with it.
+  let decoded;
+  try {
+    decoded = decodeURIComponent(url);
+  } catch {
+    res.writeHead(400, { "content-type": "text/plain" }).end("Bad request");
+    return;
+  }
+
+  serveStatic(decoded, res);
 }).listen(PORT, "127.0.0.1", () => {
   console.log("Post-Meeting Action Assistant  ->  http://localhost:" + PORT);
   console.log("Model: " + MODEL + "  (key loaded from .env, stays on the server)");

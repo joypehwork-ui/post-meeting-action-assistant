@@ -25,7 +25,13 @@ const MODELS = [
 // deepseek-v4.1-flash spends output tokens on reasoning before it answers.
 // At 4000 a two-file transcript came back empty on roughly one run in three.
 const MAX_TOKENS = 12000;
-const UPSTREAM_TIMEOUT_MS = 60000;
+// A four-sentence answer does not need the extraction budget. Giving it one
+// let a reasoning model run long enough to hit UPSTREAM_TIMEOUT_MS.
+const CHAT_MAX_TOKENS = 2000;
+const UPSTREAM_TIMEOUT_MS = 120000;
+// Same 2 MB cap serve.js puts on a request body, measured in characters rather
+// than bytes — close enough for a limit whose job is to refuse the absurd.
+const MAX_BODY_CHARS = 2_000_000;
 
 export default {
   async fetch(request, env) {
@@ -62,9 +68,22 @@ async function handleLlm(request, env) {
     return json({ error: "The server has no API key configured." }, 500);
   }
 
+  // serve.js caps the body at 2 MB and this Worker is public, so it needs the
+  // cap more, not less: without it a visitor can post an enormous transcript
+  // and spend the key on it.
+  let raw;
+  try {
+    raw = await request.text();
+  } catch (e) {
+    return json({ error: "Could not read the request body." }, 400);
+  }
+  if (raw.length > MAX_BODY_CHARS) {
+    return json({ error: "Request body too large." }, 413);
+  }
+
   let body;
   try {
-    body = await request.json();
+    body = JSON.parse(raw);
   } catch (e) {
     return json({ error: "Body must be JSON." }, 400);
   }
@@ -80,7 +99,7 @@ async function handleLlm(request, env) {
   const payload = {
     model,
     messages,
-    max_tokens: MAX_TOKENS,
+    max_tokens: body.json ? MAX_TOKENS : CHAT_MAX_TOKENS,
     temperature: 0.2,
   };
   // Zen supports json_object and rejects json_schema, so the shape is checked
@@ -109,7 +128,11 @@ async function handleLlm(request, env) {
     let msg = text.slice(0, 400);
     try { msg = JSON.parse(text).error.message; } catch {}
     console.error("upstream " + upstream.status);
-    return json({ error: "Model returned " + upstream.status + ": " + msg }, upstream.status);
+    // 204/205/304 may not carry a body: new Response() throws on those, which
+    // would turn a readable upstream error into a bare 500. Pass on only the
+    // statuses that can carry our JSON.
+    const status = upstream.status >= 400 && upstream.status <= 599 ? upstream.status : 502;
+    return json({ error: "Model returned " + upstream.status + ": " + msg }, status);
   }
 
   let data;

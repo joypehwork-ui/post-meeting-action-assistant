@@ -1,6 +1,6 @@
 ---
 name: change-llm-prompt
-description: Change the extraction or assistant prompt in this app and prove the change is an improvement, rather than assuming it from the diff. Use whenever editing extractPrompt() in js/extract.js, assistantPrompt() in js/assistant.js, validateTasks() in js/llm.js, or the model settings in serve.js.
+description: Change the extraction or assistant prompt in this app and prove the change is an improvement, rather than assuming it from the diff. Use whenever editing extractPrompt() in public/js/extract.js, assistantPrompt() in public/js/assistant.js, validateTasks() in public/js/llm.js, or the model settings in serve.js.
 ---
 
 # Change an LLM prompt
@@ -32,7 +32,7 @@ Revision history below: a fixture failed, then passed on the very next identical
    failure to your change otherwise.
 
 5. Make one change. One at a time. If you add or remove a task field, update `TASK_FIELDS`
-   and `validateTasks()` in `js/llm.js` in the same edit, and the shape line in
+   and `validateTasks()` in `public/js/llm.js` in the same edit, and the shape line in
    `extractPrompt()`. The static checks will catch a mismatch, but only if all three agree.
 
 6. Re-run against the fixture your change targets, **with repeats**:
