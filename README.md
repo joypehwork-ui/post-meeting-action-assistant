@@ -1,6 +1,4 @@
-# YOINK
-
-**Yoink the to-dos straight out of your meeting notes.**
+# Post-Meeting Action Assistant
 
 Paste or upload a meeting transcript. Get a checklist of action items with owners, deadlines,
 and the quote each one came from. Ask questions about what you owe and when.
@@ -40,7 +38,7 @@ Not published to GitHub Pages yet.
 
 ```
 index.html          markup only
-css/styles.css      all styling — YOINK brand from design/Main.dc.html
+css/styles.css      all styling — visual language from design/Main.dc.html
 js/
   app.js            entry point — wires the DOM, then boots
   config.js         constants: endpoint, model, size limits
@@ -93,7 +91,7 @@ Pages** — every file on a public site is readable by anyone who visits, includ
    - paste them
    - click **Upload notes…** and pick one or more files
    - drag files straight onto the box
-2. Click **Yoink the tasks**. Takes a few seconds.
+2. Click **Extract Tasks**. Takes a few seconds.
 3. Read the checklist. Each item shows:
    - the action
    - who owns it (`Me` means you)
@@ -137,7 +135,7 @@ chunks — the results are better anyway.
 Tasks, chat history and your API key are saved in this browser's `localStorage`. They stay on
 this computer. They are not sent anywhere except as described below.
 
-When you click **Yoink the tasks** or **Ask**, the text is sent to Google's Gemini API over HTTPS,
+When you click **Extract Tasks** or **Ask**, the text is sent to Google's Gemini API over HTTPS,
 straight from your browser to Google. It does not pass through any server belonging to this app,
 because this app has no server.
 
@@ -177,14 +175,13 @@ By design, v1 leaves out:
 
 ## Design
 
-The look comes from `design/Main.dc.html`, a brand board exported from a visual
-design canvas. It is a reference mockup, not code — the values were reimplemented
+The visual language comes from `design/Main.dc.html`, a board exported from a visual
+design canvas. Only the design was taken from it — the palette, type, borders and
+spacing. The product name and wording in that board were not used. It is a reference mockup, not code — the values were reimplemented
 in `css/styles.css` rather than copied.
 
 | | |
 |---|---|
-| Name | YOINK |
-| Line | Yoink the to-dos straight out of your meeting notes. |
 | Ink | `#0B0B0C` |
 | Accent | `#C8F31D` |
 | Background | `#F2F1EA` |

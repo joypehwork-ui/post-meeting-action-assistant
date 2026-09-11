@@ -1,4 +1,4 @@
-/* YOINK — styling from the Main.dc.html design board.
+/* Styling taken from the Main.dc.html design board.
    Neo-brutalist: 2px black rules, square corners, flat fills, no shadows.
    The design commits to one light look, so there is no dark theme. */
 
@@ -130,14 +130,14 @@ label {
 }
 .hero h1 {
   font-family: "Archivo Black", Archivo, "Helvetica Neue", sans-serif;
-  font-size: 60px; line-height: 0.86; letter-spacing: -0.045em; margin: 0 0 8px;
+  font-size: 46px; line-height: 0.92; letter-spacing: -0.04em; margin: 0 0 10px;
 }
-.hero p { margin: 0; font-size: 18px; font-weight: 500; color: var(--ink-2); max-width: 420px; text-wrap: pretty; }
+.hero p { margin: 0; font-size: 17px; font-weight: 500; color: var(--ink-2); max-width: 440px; text-wrap: pretty; }
 @media (max-width: 620px) {
   .hero { gap: 16px; }
-  .hero .tile { width: 64px; height: 64px; border-radius: 15px; }
-  .hero .tile svg { width: 40px; height: 40px; }
-  .hero h1 { font-size: 40px; }
+  .hero .tile { width: 60px; height: 60px; border-radius: 14px; }
+  .hero .tile svg { width: 38px; height: 38px; }
+  .hero h1 { font-size: 28px; }
   .hero p { font-size: 15px; }
 }
 
