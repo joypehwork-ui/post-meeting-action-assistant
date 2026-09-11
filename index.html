@@ -4,180 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Post-Meeting Action Assistant</title>
-<style>
-  :root {
-    --bg: #f6f7f9;
-    --surface: #ffffff;
-    --surface-2: #f0f2f5;
-    --line: #dfe3e8;
-    --line-soft: #eceff3;
-    --ink: #16191d;
-    --ink-2: #5a616b;
-    --ink-3: #878e98;
-    --accent: #2f5fe0;
-    --accent-ink: #ffffff;
-    --overdue: #c2372b;
-    --today: #b1650a;
-    --soon: #1f6f47;
-    --later: #5a616b;
-    --quote-bar: #cdd4dd;
-    --radius: 10px;
-    --shadow: 0 1px 2px rgba(16,20,26,.06), 0 4px 12px rgba(16,20,26,.05);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #14171b; --surface: #1b1f24; --surface-2: #22272e;
-      --line: #2f363f; --line-soft: #262c33;
-      --ink: #e8ebef; --ink-2: #a2abb6; --ink-3: #7b848f;
-      --accent: #6d95f5; --accent-ink: #10131a;
-      --overdue: #f0837a; --today: #e0aa5a; --soon: #6fc79b; --later: #a2abb6;
-      --quote-bar: #3a424c;
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #14171b; --surface: #1b1f24; --surface-2: #22272e;
-    --line: #2f363f; --line-soft: #262c33;
-    --ink: #e8ebef; --ink-2: #a2abb6; --ink-3: #7b848f;
-    --accent: #6d95f5; --accent-ink: #10131a;
-    --overdue: #f0837a; --today: #e0aa5a; --soon: #6fc79b; --later: #a2abb6;
-    --quote-bar: #3a424c;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
-  }
-
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 0 56px; }
-
-  /* ---------- header ---------- */
-  header {
-    border-bottom: 1px solid var(--line);
-    background: var(--surface);
-    position: sticky; top: 0; z-index: 20;
-  }
-  .hbar {
-    max-width: 1120px; margin: 0 auto;
-    padding: 12px 20px;
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  }
-  .brand { font-weight: 650; letter-spacing: -.01em; margin-right: auto; display:flex; align-items:center; gap:9px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; }
-  .hnote { font-size: 12.5px; color: var(--ink-3); }
-
-  button {
-    font: inherit; cursor: pointer; border-radius: 8px;
-    border: 1px solid var(--line); background: var(--surface);
-    color: var(--ink); padding: 7px 13px; transition: background .12s, border-color .12s;
-  }
-  button:hover:not(:disabled) { background: var(--surface-2); }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 560; }
-  button.primary:hover:not(:disabled) { filter: brightness(1.07); background: var(--accent); }
-  button.sm { padding: 4px 9px; font-size: 13px; }
-  button.link { border: none; background: none; color: var(--ink-3); padding: 4px 6px; text-decoration: underline; text-underline-offset: 2px; }
-  button.link:hover { color: var(--ink); background: none; }
-  button.danger { color: var(--overdue); }
-
-  input, textarea, select {
-    font: inherit; color: var(--ink); background: var(--surface);
-    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
-  }
-  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  textarea { resize: vertical; line-height: 1.55; }
-  label { font-size: 12.5px; color: var(--ink-2); font-weight: 550; display: block; margin-bottom: 5px; }
-
-  /* ---------- settings ---------- */
-  #settings { background: var(--surface-2); border-bottom: 1px solid var(--line); }
-  .sgrid {
-    max-width: 1120px; margin: 0 auto; padding: 16px 20px;
-    display: grid; gap: 14px; grid-template-columns: 2fr 1fr;
-  }
-  .shelp { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-3); margin: 0; }
-  .shelp a { color: var(--accent); }
-  @media (max-width: 680px) { .sgrid { grid-template-columns: 1fr; } }
-
-  /* ---------- layout ---------- */
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 0 0 10px; font-weight: 620; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-  .pad { padding: 16px; }
-
-  .step { margin-top: 24px; }
-  .cols { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; margin-top: 24px; }
-  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
-
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .grow { flex: 1; min-width: 0; }
-  .muted { color: var(--ink-3); font-size: 13px; }
-  .empty { color: var(--ink-3); font-size: 13.5px; padding: 22px 4px; text-align: center; }
-
-  /* ---------- tasks ---------- */
-  ul.tasks { list-style: none; margin: 0; padding: 0; }
-  li.task { border-top: 1px solid var(--line-soft); padding: 13px 16px; display: flex; gap: 11px; align-items: flex-start; }
-  li.task:first-child { border-top: none; }
-  li.task.done { opacity: .5; }
-  li.task.done .title { text-decoration: line-through; }
-  .cbx { width: 17px; height: 17px; margin: 2px 0 0; flex: none; accent-color: var(--accent); cursor: pointer; }
-  .tbody { flex: 1; min-width: 0; }
-  .title { font-weight: 545; line-height: 1.4; word-wrap: break-word; }
-  .meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
-  .chip {
-    font-size: 12px; padding: 2px 8px; border-radius: 999px;
-    background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2);
-    white-space: nowrap;
-  }
-  .chip.owner { font-weight: 550; color: var(--ink); }
-  .chip.overdue { color: var(--overdue); border-color: currentColor; }
-  .chip.today   { color: var(--today);   border-color: currentColor; }
-  .chip.soon    { color: var(--soon);    border-color: currentColor; }
-  .chip.later   { color: var(--later); }
-  .chip.none    { color: var(--ink-3); font-style: italic; }
-  .acts { display: flex; gap: 2px; margin-left: auto; }
-
-  blockquote.ctx {
-    margin: 9px 0 0; padding: 7px 0 7px 11px;
-    border-left: 3px solid var(--quote-bar);
-    color: var(--ink-2); font-size: 13.5px; line-height: 1.5;
-  }
-  blockquote.ctx::before { content: '\201C'; }
-  blockquote.ctx::after  { content: '\201D'; }
-
-  .editform { display: grid; gap: 9px; margin-top: 4px; }
-  .editrow { display: grid; grid-template-columns: 1fr 150px; gap: 9px; }
-  @media (max-width: 560px) { .editrow { grid-template-columns: 1fr; } }
-
-  /* ---------- due soon ---------- */
-  ol.soon { list-style: none; margin: 0; padding: 0; counter-reset: n; }
-  ol.soon li { border-top: 1px solid var(--line-soft); padding: 10px 16px; display: flex; gap: 10px; align-items: baseline; }
-  ol.soon li:first-child { border-top: none; }
-  ol.soon .rank { counter-increment: n; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; min-width: 14px; }
-  ol.soon .rank::before { content: counter(n) "."; }
-  ol.soon .st { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.4; }
-  ol.soon .sd { font-size: 12px; white-space: nowrap; }
-
-  /* ---------- assistant ---------- */
-  .thread { display: flex; flex-direction: column; gap: 12px; max-height: 380px; overflow-y: auto; padding: 16px; }
-  .turn .q { font-weight: 560; font-size: 13.5px; margin-bottom: 5px; }
-  .turn .a { font-size: 13.5px; color: var(--ink-2); white-space: pre-wrap; line-height: 1.55; }
-  .askbar { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line-soft); }
-  .sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 14px; }
-  .sugg button { font-size: 12px; padding: 4px 9px; color: var(--ink-2); }
-
-  .err {
-    margin-top: 12px; padding: 10px 12px; border-radius: 8px;
-    background: color-mix(in srgb, var(--overdue) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--overdue) 35%, transparent);
-    color: var(--overdue); font-size: 13px; word-wrap: break-word;
-  }
-  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
-  @keyframes sp { to { transform: rotate(360deg); } }
-  [hidden] { display: none !important; }
-</style>
+<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
@@ -204,37 +31,50 @@
       Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.
       The key is saved in this browser only and is sent directly to Google — it never passes through any server of ours.
       Transcripts you paste are sent to Google's Gemini API for extraction.
+      You can also put a key in <code>.env</code> instead; see the README.
     </p>
   </div>
 </section>
 
 <div class="wrap">
 
-  <!-- STEP 1 -->
+  <!-- STEP 1 — ingestion -->
   <section class="step">
-    <h2>1 · Paste transcript or notes</h2>
+    <h2>1 · Paste or upload transcript</h2>
     <div class="card pad">
-      <textarea id="input" rows="9" placeholder="Paste the raw meeting transcript or your rough notes here…
+      <div id="drop">
+        <textarea id="input" rows="9" placeholder="Paste the raw meeting transcript or your rough notes here…
 
 e.g.  Sarah: I'll get the revised pricing deck over to you by Thursday.
       Me: Great — I'll send the security questionnaire to their IT team before Friday
       and loop in Raj on the migration timeline."></textarea>
+        <div class="dropveil"><span>Drop your notes to add them</span></div>
+      </div>
+
+      <div class="files" id="files" hidden></div>
+
       <div class="row" style="margin-top:12px">
         <button class="primary" id="extract">Extract Tasks</button>
+        <button id="upload">Upload notes…</button>
         <button id="sample">Use sample transcript</button>
         <span class="muted" id="exstatus"></span>
       </div>
+
+      <p class="hint">Or drag files straight onto the box. Reads .txt, .md, .csv, .log and Zoom/Teams .vtt / .srt transcripts.</p>
       <div class="err" id="exerr" hidden></div>
+
+      <input type="file" id="filein" multiple hidden
+             accept=".txt,.md,.markdown,.vtt,.srt,.csv,.log,.text,text/plain,text/markdown,text/csv">
     </div>
   </section>
 
   <div class="cols">
-    <!-- STEP 2 -->
+    <!-- STEP 2 — the checklist -->
     <section>
       <h2>2 · Action items <span id="taskcount" class="muted"></span></h2>
       <div class="card">
         <ul class="tasks" id="tasklist"></ul>
-        <div class="empty" id="taskempty">No action items yet. Paste a transcript above and click Extract Tasks.</div>
+        <div class="empty" id="taskempty">No action items yet. Add a transcript above and click Extract Tasks.</div>
       </div>
       <div class="row" style="margin-top:10px">
         <button class="link" id="showdone" hidden></button>
@@ -242,18 +82,18 @@ e.g.  Sarah: I'll get the revised pricing deck over to you by Thursday.
     </section>
 
     <aside>
-      <!-- TODO / DUE SOON -->
+      <!-- todo list, ordered by urgency -->
       <h2>Due soon</h2>
       <div class="card" style="margin-bottom:24px">
         <ol class="soon" id="soonlist"></ol>
         <div class="empty" id="soonempty">Nothing pending.</div>
       </div>
 
-      <!-- STEP 3 -->
+      <!-- STEP 3 — follow-up questions -->
       <h2>3 · Ask the assistant</h2>
       <div class="card">
         <div class="thread" id="thread">
-          <div class="empty" id="chatempty">Ask anything about your open items.</div>
+          <div class="empty">Ask anything about your open items.</div>
         </div>
         <div class="sugg" id="sugg">
           <button data-q="What is my top priority before end of day?">Top priority today?</button>
@@ -270,387 +110,6 @@ e.g.  Sarah: I'll get the revised pricing deck over to you by Thursday.
   </div>
 </div>
 
-<script>
-"use strict";
-
-const STORE = "pmaa.v1";
-const API = "https://generativelanguage.googleapis.com/v1beta/models";
-const DEFAULT_MODEL = "gemini-2.5-flash";
-
-let state = { apiKey: "", model: DEFAULT_MODEL, tasks: [], chat: [], showDone: false };
-
-/* ---------------- storage ---------------- */
-function load() {
-  try {
-    const raw = localStorage.getItem(STORE);
-    if (raw) {
-      const p = JSON.parse(raw);
-      state = Object.assign(state, p);
-      if (!state.model) state.model = DEFAULT_MODEL;
-      if (!Array.isArray(state.tasks)) state.tasks = [];
-      if (!Array.isArray(state.chat)) state.chat = [];
-    }
-  } catch (e) { /* private mode / blocked storage — run in memory */ }
-}
-function save() {
-  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
-}
-
-/* ---------------- helpers ---------------- */
-const $ = (id) => document.getElementById(id);
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-function uid() {
-  return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-function todayISO() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
-function dueInfo(due) {
-  if (!due) return { label: "no date", cls: "none", rank: 9e9 };
-  const t = new Date(todayISO() + "T00:00:00");
-  const d = new Date(due + "T00:00:00");
-  if (isNaN(d)) return { label: "no date", cls: "none", rank: 9e9 };
-  const days = Math.round((d - t) / 86400000);
-  if (days < 0)   return { label: days === -1 ? "overdue 1 day" : "overdue " + (-days) + " days", cls: "overdue", rank: days };
-  if (days === 0) return { label: "today", cls: "today", rank: 0 };
-  if (days === 1) return { label: "tomorrow", cls: "soon", rank: 1 };
-  if (days <= 3)  return { label: "in " + days + " days", cls: "soon", rank: days };
-  return { label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), cls: "later", rank: days };
-}
-const openTasks = () => state.tasks.filter(t => t.status === "open");
-const sortByDue = (a, b) => dueInfo(a.due).rank - dueInfo(b.due).rank;
-
-/* ---------------- Gemini ---------------- */
-async function gemini(prompt, schema) {
-  if (!state.apiKey) throw new Error("No API key set. Open Settings and paste your Google AI Studio key.");
-  const cfg = { temperature: 0.2 };
-  if (schema) { cfg.responseMimeType = "application/json"; cfg.responseSchema = schema; }
-  const res = await fetch(API + "/" + encodeURIComponent(state.model) + ":generateContent", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": state.apiKey },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: cfg })
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    let msg = text.slice(0, 400);
-    try { msg = JSON.parse(text).error.message; } catch (e) {}
-    throw new Error("Gemini " + res.status + ": " + msg);
-  }
-  let out;
-  try { out = JSON.parse(text).candidates[0].content.parts[0].text; }
-  catch (e) { throw new Error("Unexpected response shape from Gemini."); }
-  return schema ? JSON.parse(out) : out;
-}
-
-const TASK_SCHEMA = {
-  type: "object",
-  properties: {
-    tasks: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title:   { type: "string" },
-          owner:   { type: "string" },
-          due:     { type: "string" },
-          dueText: { type: "string" },
-          context: { type: "string" }
-        },
-        required: ["title", "owner", "due", "dueText", "context"]
-      }
-    }
-  },
-  required: ["tasks"]
-};
-
-function extractPrompt(text) {
-  const d = new Date();
-  const day = d.toLocaleDateString(undefined, { weekday: "long" });
-  return [
-    "You extract action items from meeting transcripts and rough notes.",
-    "",
-    "Today is " + todayISO() + " (" + day + "). Resolve relative deadlines like \"Friday\", \"next week\" or \"end of month\" against that date.",
-    "",
-    "For every commitment, task or follow-up in the text, return an object with:",
-    "- title: the action, as a short imperative phrase (max 12 words).",
-    "- owner: who is responsible. Use the person's name as written. If the note-taker is responsible (\"I\", \"me\", \"my\"), use \"Me\".",
-    "- due: an absolute date as YYYY-MM-DD. Use \"\" if the text gives no deadline and none can reasonably be inferred.",
-    "- dueText: the words the deadline came from, e.g. \"by Thursday\". Use \"\" if there was none.",
-    "- context: one or two sentences quoted or closely paraphrased from the source text, showing why this task exists.",
-    "",
-    "Rules: only include real commitments — skip discussion, opinions and background.",
-    "Do not invent tasks. Do not invent deadlines that are not stated or clearly implied.",
-    "If there are no action items, return an empty array.",
-    "",
-    "TEXT:",
-    "\"\"\"",
-    text,
-    "\"\"\""
-  ].join("\n");
-}
-
-/* ---------------- extraction ---------------- */
-async function doExtract() {
-  const text = $("input").value.trim();
-  $("exerr").hidden = true;
-  if (!text) { showErr("exerr", "Paste a transcript or some notes first."); return; }
-
-  const btn = $("extract");
-  btn.disabled = true;
-  $("exstatus").innerHTML = '<span class="spin"></span>Extracting…';
-  const t0 = Date.now();
-  try {
-    const out = await gemini(extractPrompt(text), TASK_SCHEMA);
-    const found = Array.isArray(out.tasks) ? out.tasks : [];
-    const added = found.map(t => ({
-      id: uid(),
-      title: (t.title || "Untitled task").trim(),
-      owner: (t.owner || "Unassigned").trim(),
-      due: /^\d{4}-\d{2}-\d{2}$/.test(t.due || "") ? t.due : "",
-      dueText: (t.dueText || "").trim(),
-      context: (t.context || "").trim(),
-      status: "open",
-      created: Date.now()
-    }));
-    state.tasks = added.concat(state.tasks);
-    save();
-    render();
-    const secs = ((Date.now() - t0) / 1000).toFixed(1);
-    $("exstatus").textContent = added.length
-      ? added.length + (added.length === 1 ? " item" : " items") + " found in " + secs + "s"
-      : "No action items found in that text.";
-    if (added.length) $("input").value = "";
-  } catch (e) {
-    $("exstatus").textContent = "";
-    showErr("exerr", e.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function showErr(id, msg) {
-  const el = $(id);
-  el.textContent = msg;
-  el.hidden = false;
-}
-
-/* ---------------- rendering ---------------- */
-function render() {
-  renderTasks();
-  renderSoon();
-  renderChat();
-  const k = state.apiKey;
-  $("keystate").textContent = k ? "Key set · " + state.model : "No API key — open Settings";
-}
-
-function renderTasks() {
-  const list = $("tasklist");
-  const open = state.tasks.filter(t => t.status === "open").sort(sortByDue);
-  const done = state.tasks.filter(t => t.status === "done").sort(sortByDue);
-  const shown = state.showDone ? open.concat(done) : open;
-
-  $("taskempty").hidden = state.tasks.some(t => t.status !== "dismissed");
-  $("taskcount").textContent = open.length ? "· " + open.length + " open" : "";
-
-  const btn = $("showdone");
-  btn.hidden = done.length === 0;
-  btn.textContent = state.showDone ? "Hide " + done.length + " completed" : "Show " + done.length + " completed";
-
-  list.innerHTML = shown.map(t => {
-    const di = dueInfo(t.due);
-    const dueLabel = t.due ? di.label : (t.dueText ? t.dueText : "no date");
-    return '<li class="task ' + (t.status === "done" ? "done" : "") + '" data-id="' + t.id + '">' +
-      '<input class="cbx" type="checkbox" data-act="toggle" ' + (t.status === "done" ? "checked" : "") + ' aria-label="Mark complete">' +
-      '<div class="tbody">' +
-        '<div class="row" style="align-items:flex-start">' +
-          '<div class="title grow">' + esc(t.title) + '</div>' +
-          '<div class="acts">' +
-            '<button class="sm link" data-act="edit">Edit</button>' +
-            '<button class="sm link" data-act="dismiss">Dismiss</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="meta">' +
-          '<span class="chip owner">' + esc(t.owner) + '</span>' +
-          '<span class="chip ' + di.cls + '">' + esc(dueLabel) + '</span>' +
-          (t.due && t.dueText ? '<span class="chip">' + esc(t.dueText) + '</span>' : "") +
-        '</div>' +
-        (t.context ? '<blockquote class="ctx">' + esc(t.context) + '</blockquote>' : "") +
-      '</div>' +
-    '</li>';
-  }).join("");
-}
-
-function renderEdit(li, t) {
-  const body = li.querySelector(".tbody");
-  body.innerHTML =
-    '<div class="editform">' +
-      '<div><label>Task</label><input data-f="title" value="' + esc(t.title) + '"></div>' +
-      '<div class="editrow">' +
-        '<div><label>Owner</label><input data-f="owner" value="' + esc(t.owner) + '"></div>' +
-        '<div><label>Due date</label><input data-f="due" type="date" value="' + esc(t.due) + '"></div>' +
-      '</div>' +
-      '<div><label>Context</label><textarea data-f="context" rows="2">' + esc(t.context) + '</textarea></div>' +
-      '<div class="row"><button class="primary sm" data-act="save">Save</button>' +
-      '<button class="sm" data-act="cancel">Cancel</button></div>' +
-    '</div>';
-  const first = body.querySelector('[data-f="title"]');
-  if (first) first.focus();
-}
-
-function renderSoon() {
-  const open = openTasks().sort(sortByDue);
-  $("soonempty").hidden = open.length > 0;
-  $("soonlist").innerHTML = open.map(t => {
-    const di = dueInfo(t.due);
-    return '<li><span class="rank"></span>' +
-      '<span class="st">' + esc(t.title) + '<br><span class="muted">' + esc(t.owner) + '</span></span>' +
-      '<span class="sd chip ' + di.cls + '">' + esc(di.label) + '</span></li>';
-  }).join("");
-}
-
-function renderChat() {
-  const th = $("thread");
-  $("chatempty").hidden = state.chat.length > 0;
-  const html = state.chat.map(c =>
-    '<div class="turn"><div class="q">' + esc(c.q) + '</div><div class="a">' + esc(c.a) + '</div></div>'
-  ).join("");
-  th.innerHTML = '<div class="empty" id="chatempty"' + (state.chat.length ? " hidden" : "") + '>Ask anything about your open items.</div>' + html;
-  th.scrollTop = th.scrollHeight;
-}
-
-/* ---------------- assistant ---------------- */
-async function doAsk(q) {
-  if (!q) return;
-  $("chaterr").hidden = true;
-  const open = openTasks();
-  if (!open.length) { showErr("chaterr", "No open action items to answer from yet."); return; }
-
-  const btn = $("asksend");
-  btn.disabled = true;
-  state.chat.push({ q: q, a: "…" });
-  renderChat();
-
-  const facts = open.sort(sortByDue).map(t =>
-    "- " + t.title + " | owner: " + t.owner + " | due: " + (t.due || "none") + (t.dueText ? " (" + t.dueText + ")" : "") +
-    " | context: " + t.context
-  ).join("\n");
-
-  const prompt = [
-    "You are a concise assistant answering questions about the user's own open action items.",
-    "Today is " + todayISO() + ". \"Me\" means the user.",
-    "",
-    "OPEN ACTION ITEMS:",
-    facts,
-    "",
-    "QUESTION: " + q,
-    "",
-    "Answer in at most four short sentences or a short bullet list.",
-    "Lead with the single most urgent item. Always state the deadline.",
-    "Only use the items above — if nothing matches, say so plainly."
-  ].join("\n");
-
-  try {
-    const a = await gemini(prompt, null);
-    state.chat[state.chat.length - 1].a = String(a).trim();
-    save();
-  } catch (e) {
-    state.chat.pop();
-    showErr("chaterr", e.message);
-  } finally {
-    btn.disabled = false;
-    renderChat();
-  }
-}
-
-/* ---------------- events ---------------- */
-$("togglesettings").onclick = () => { $("settings").hidden = !$("settings").hidden; };
-
-$("apikey").oninput = (e) => { state.apiKey = e.target.value.trim(); save(); render(); };
-$("model").oninput  = (e) => { state.model = e.target.value.trim() || DEFAULT_MODEL; save(); render(); };
-
-$("extract").onclick = doExtract;
-
-$("sample").onclick = () => {
-  $("input").value =
-"Weekly sync — Acme account\n\n" +
-"Sarah: The revised pricing deck still needs the enterprise tier. I'll get that over to you by Thursday.\n" +
-"Me: Fine. I'll send the security questionnaire to their IT team before Friday, they've been chasing us.\n" +
-"Raj: Migration timeline is the blocker. Nothing moves until we confirm the cutover window.\n" +
-"Me: I'll book 30 minutes with Raj tomorrow to lock the cutover window.\n" +
-"Sarah: Also someone needs to chase legal on the redlined MSA — it's been two weeks.\n" +
-"Me: I'll do it. End of week at the latest.\n" +
-"Raj: I'll write up the rollback plan once the window is confirmed.\n" +
-"Sarah: Good. Let's not lose momentum on this one.";
-};
-
-$("clearall").onclick = () => {
-  if (!confirm("Delete all tasks, chat history and your saved API key from this browser? This cannot be undone.")) return;
-  try { localStorage.removeItem(STORE); } catch (e) {}
-  state = { apiKey: "", model: DEFAULT_MODEL, tasks: [], chat: [], showDone: false };
-  $("apikey").value = "";
-  $("model").value = DEFAULT_MODEL;
-  $("input").value = "";
-  $("exstatus").textContent = "";
-  $("exerr").hidden = true;
-  $("chaterr").hidden = true;
-  render();
-};
-
-$("showdone").onclick = () => { state.showDone = !state.showDone; save(); renderTasks(); };
-
-$("tasklist").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-act]");
-  if (!btn) return;
-  const li = e.target.closest("li.task");
-  if (!li) return;
-  const t = state.tasks.find(x => x.id === li.dataset.id);
-  if (!t) return;
-  const act = btn.dataset.act;
-
-  if (act === "toggle") {
-    t.status = btn.checked ? "done" : "open";
-    save(); render();
-  } else if (act === "edit") {
-    renderEdit(li, t);
-  } else if (act === "dismiss") {
-    t.status = "dismissed";
-    save(); render();
-  } else if (act === "cancel") {
-    render();
-  } else if (act === "save") {
-    const get = (f) => { const el = li.querySelector('[data-f="' + f + '"]'); return el ? el.value.trim() : ""; };
-    t.title = get("title") || t.title;
-    t.owner = get("owner") || "Unassigned";
-    t.due = get("due");
-    t.context = get("context");
-    save(); render();
-  }
-});
-
-$("askform").onsubmit = (e) => {
-  e.preventDefault();
-  const q = $("ask").value.trim();
-  if (!q) return;
-  $("ask").value = "";
-  doAsk(q);
-};
-
-$("sugg").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-q]");
-  if (b) doAsk(b.dataset.q);
-});
-
-/* ---------------- boot ---------------- */
-load();
-$("apikey").value = state.apiKey || "";
-$("model").value = state.model || DEFAULT_MODEL;
-if (!state.apiKey) $("settings").hidden = false;
-render();
-</script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
