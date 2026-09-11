@@ -1,183 +1,197 @@
 # Post-Meeting Action Assistant
 
 Paste or upload a meeting transcript. Get a checklist of action items with owners, deadlines,
-and the quote each one came from. Ask questions about what you owe and when.
+and the quote each one came from. Then ask questions about what you owe and when.
 
-No build step, no dependencies, no bundler. Plain ES modules, and a small Node server that
-holds the API key and serves the files.
+Built for people in back-to-back meetings who lose action items between calls.
 
-## What you need first
+No build step, no bundler, no npm dependencies. Plain ES modules, plus a small Node server
+that holds the API key.
 
-An **OpenCode** API key, and Node 18 or newer (`node -v`).
+---
 
-Put the key in `.env`:
+## Quick start
+
+```sh
+git clone https://github.com/joypehwork-ui/post-meeting-action-assistant.git
+cd post-meeting-action-assistant
+cp .env.example .env        # then put your key in it
+node serve.js
+```
+
+Open http://localhost:3000.
+
+Needs Node 18 or newer (`node -v`) and an **OpenCode** API key.
+
+`.env`:
 
 ```
 OPENCODE_API_KEY=sk-...
 LLM_MODEL=deepseek-v4.1-flash
 ```
 
-`.env` is gitignored. The key stays on the server — see below.
+**Do not double-click `public/index.html`.** The code is split into ES modules, which browsers
+refuse to load over `file://`, and the model call goes through the local server. It has to be
+served.
 
-## How to run it
+---
 
-```sh
-node serve.js
-```
+## What it does
 
-Then open http://localhost:3000.
+| Feature | Where |
+|---|---|
+| Paste, upload, or drag in a transcript | top of the page |
+| Extract action items with owner, deadline and source quote | **Extract Tasks** |
+| Tick off, edit inline, or dismiss an item | the checklist |
+| See what is closest to due | **Due soon**, right-hand column |
+| Ask "what do I owe Sarah before Friday?" | **Ask the assistant** |
+| Switch which model answers | dropdown in the header |
+| Wipe everything | **Clear All Data** |
 
-**Do not double-click `index.html`.** Two reasons: the code is split into ES modules, which
-browsers refuse to load over `file://`, and the model call goes through the local server.
+Every extracted task carries a one or two sentence quote from your notes, so you can see why
+it exists without going back to the transcript.
 
-## Where the key lives
+Due-date chips escalate: grey for later, outlined for soon, lime for today, black for overdue.
 
-`serve.js` reads `.env` at startup and exposes one route, `POST /api/llm`, which forwards to
-OpenCode Zen. The browser posts to that route. It never sees the key, never stores one, and
-there is nothing to paste into the UI.
+### Files it can read
 
-That is not just tidier, it is the only design that works here: **OpenCode Zen sends no CORS
-headers.** Its preflight returns 404 and its responses carry no `Access-Control-Allow-Origin`,
-so a browser cannot call it directly at all.
+`.txt` `.md` `.csv` `.log` `.vtt` `.srt`, and anything the browser reports as plain text.
 
-The server refuses to start without a key, and will not serve `.env` over HTTP even though it
-sits in the folder.
-
-## How to use it
-
-1. Get your notes into the big box. Three ways:
-   - paste them
-   - click **Upload notes…** and pick one or more files
-   - drag files straight onto the box
-2. Click **Extract Tasks**. Takes a few seconds.
-3. Read the checklist. Each item shows:
-   - the action
-   - who owns it (`Me` means you)
-   - when it is due
-   - the sentence from your notes that the task came from
-4. Tick items you have done. Click **Edit** to fix anything wrong. Click **Dismiss** to remove
-   an item that is not a real task.
-5. **Due soon** on the right lists every open item, most urgent first.
-6. Type a question into **Ask the assistant**, for example:
-   - What is my top priority before end of day?
-   - What do I owe Sarah before Friday?
-   - What is due in the next three days?
-
-There is a **Use sample transcript** button if you want to try it without pasting anything.
-
-## Which files it can read
-
-`.txt` `.md` `.csv` `.log` `.vtt` `.srt`, and anything else the browser reports as plain text.
-
-Zoom and Teams both export `.vtt`. The app strips the timestamps, cue numbers and
-`<v Name>` tags out of those before sending them, so the model reads dialogue rather
-than subtitle scaffolding:
+Zoom and Teams export `.vtt`. Timestamps, cue numbers and `<v Name>` tags are stripped before
+the model sees them, so it reads dialogue rather than subtitle scaffolding:
 
 ```
 00:00:01.000 --> 00:00:04.000        becomes      Sarah: I'll get the deck to you by Thursday.
 <v Sarah>I'll get the deck to you by Thursday.
 ```
 
-Upload several files at once and they are joined with a `--- filename ---` header between
-them. The model merges a commitment that appears in more than one of them.
+Upload several files at once and they are joined with a `--- filename ---` header. A commitment
+appearing in more than one of them is merged, not duplicated.
 
-**Word and PDF do not work.** `.docx` and `.pdf` are compressed binary formats and this app
-has no library to unpack them. You get a message telling you to export as `.txt` or paste the
-text.
+**Word and PDF do not work** — `.docx` and `.pdf` are compressed binary and there is no library
+here to unpack them. You get a message telling you to export as `.txt`. Input over 200,000
+characters is trimmed with a warning.
 
-Anything over 200,000 characters is trimmed, with a warning.
+---
+
+## Choosing a model
+
+The header dropdown switches which model answers. Five are offered, each verified working and
+billing at `cost: 0` on this endpoint:
+
+`deepseek-v4.1-flash` · `qwen3.8-flash` · `glm-5.3-flash` · `kimi-k2.6` · `minimax-m2.5`
+
+The list is an **allowlist held by the server**, not a free-text field. A public deployment
+must never let a visitor name an arbitrary model and spend the key on it; anything off the list
+falls back to the default. To change the options, edit `MODELS` in **both** `serve.js` and
+`worker.js`.
+
+`deepseek-v4.1-flash` is a reasoning model — it spends output tokens thinking before it writes
+anything. `MAX_TOKENS` is 12000 for that reason. At 4000, a two-file transcript came back empty
+on roughly one run in three.
+
+---
+
+## Where the key lives
+
+`serve.js` reads `.env` at startup and exposes one route, `POST /api/llm`, which forwards to
+OpenCode Zen. The browser posts to that route. It never sees the key, never stores one, and
+there is no key field in the UI.
+
+That is not just tidier — it is the only design that works here. **OpenCode Zen sends no CORS
+headers**: its preflight returns 404 and no response carries `Access-Control-Allow-Origin`, so
+a browser cannot call it directly at all.
+
+The server refuses to start without a key and will not serve `.env` over HTTP.
+
+---
+
+## Deploying
+
+**GitHub Pages cannot host this app.** Pages serves static files only. The page would load and
+look fine, then every extraction would 404 on `/api/llm`.
+
+Use Cloudflare Workers. `worker.js` is the deployed twin of `serve.js` — same proxy, same
+allowlist, same token limit, with static files served from the `ASSETS` binding.
+
+```sh
+npx wrangler@4 login
+npx wrangler@4 secret put OPENCODE_API_KEY     # paste the key when prompted
+npx wrangler@4 deploy
+```
+
+The key becomes a Worker secret. It is never committed and never uploaded as an asset: only
+`./public` is uploaded, and `.env` lives above it, so it cannot be published by accident.
+
+---
 
 ## Changing a prompt
 
-The app's behaviour is two strings: `extractPrompt()` in `js/extract.js` and
-`assistantPrompt()` in `js/assistant.js`. **A prompt diff tells you nothing about whether the
-change worked**, so there is a harness:
+The app's behaviour is two strings — `extractPrompt()` in `public/js/extract.js` and
+`assistantPrompt()` in `public/js/assistant.js`. **A prompt diff tells you nothing about
+whether the change worked**, so there is a harness:
 
 ```sh
 node checks/prompt-check.mjs --save-baseline    # before editing
 node checks/prompt-check.mjs --repeat=3         # after
 ```
 
-It imports the app's own modules, so it tests the prompt actually being sent. It checks the
-reply parses, matches the shape, has sane dates, has no duplicates, and — the one that
-matters — that every `context` is traceable to the source text, which is the machine-checkable
-form of "do not invent tasks".
+It imports the app's own modules, so it tests the prompt actually being sent rather than a copy
+that drifts. It checks the reply parses, matches the shape, has sane dates, has no duplicates,
+and — the one that matters — that every `context` is traceable to the source text. That is the
+machine-checkable form of the prompt's own rule, "do not invent tasks".
 
-**Use `--repeat`.** The model is not deterministic. A fixture here failed, then passed on the
-next identical run; measured properly it was failing 3 times in 5.
+**Always use `--repeat`.** The model is not deterministic. A fixture here failed, then passed on
+the next identical run; measured properly it was failing 3 times in 5.
 
-The full procedure is in `.claude/skills/change-llm-prompt/SKILL.md`, including a revision
-history of what each check was added to catch.
+The full procedure is in `.claude/skills/change-llm-prompt/SKILL.md`, with a revision history of
+what each check was added to catch and why.
 
-## Changing the model
+---
 
-Edit `LLM_MODEL` in `.env` and restart the server. Model names come from
-`https://opencode.ai/zen/go/v1/models`.
-
-Note that `deepseek-v4.1-flash` is a reasoning model: it spends output tokens thinking before
-it writes anything. `MAX_TOKENS` in `serve.js` is 12000 for that reason. At 4000 a two-file
-transcript failed about one run in three with an empty reply.
-
-## Using a different provider
-
-Change the `fetch` in `handleLlm()` in `serve.js`. Because the call is server-side, CORS is
-irrelevant and any provider works — which was not true of the earlier browser-side design.
-
-`js/llm.js` in the browser only knows about `/api/llm` and does not need to change.
-
-## Where your data goes
-
-Tasks and chat history are saved in this browser's `localStorage`. They stay on this computer.
-
-When you click **Extract Tasks** or **Ask**, the text goes to your local server and on to
-OpenCode Zen over HTTPS.
-
-**Clear All Data** deletes the tasks and chat history from this browser. It cannot be undone.
-
-### Honest limits
-
-- `localStorage` is **not encrypted**. Anyone with access to this computer and this browser
-  profile can read the saved transcripts and tasks. Do not use this on a shared machine.
-- OpenCode Zen's terms are not an enterprise zero-data-retention agreement. For real client
-  transcripts, use a provider you have a contract with.
-
-## File layout
+## Layout
 
 ```
-index.html          markup only
-css/styles.css      all styling — visual language from design/Main.dc.html
-js/
-  app.js            entry point — wires the DOM, then boots
-  config.js         storage key, file types, size limits
-  state.js          app state and localStorage
-  llm.js            the only module that talks to the model, via /api/llm
-  extract.js        transcript -> action items
-  assistant.js      the follow-up question box
-  files.js          upload, drag-drop, .vtt/.srt cleaning
-  render.js         all DOM writing
-  util.js           escaping, dates, due-date ranking
-  sample.js         the demo transcript
-serve.js            static files + POST /api/llm; holds the key
+public/                     everything served to the browser
+  index.html                markup only
+  css/styles.css            all styling
+  js/
+    app.js                  entry point — wires the DOM, then boots
+    config.js               storage key, file types, size limits
+    state.js                app state and localStorage
+    llm.js                  the only module that talks to the model, via /api/llm
+    extract.js              transcript -> action items
+    assistant.js            the follow-up question box
+    files.js                upload, drag-drop, .vtt/.srt cleaning
+    render.js               all DOM writing
+    util.js                 escaping, dates, due-date ranking
+    sample.js               the demo transcript
+serve.js                    local: static files + POST /api/llm; holds the key
+worker.js                   deployed: the same, on Cloudflare
+wrangler.toml               Worker config; uploads ./public only
 checks/
-  prompt-check.mjs  prove a prompt change is an improvement
-  fixtures.mjs      fixed inputs, one per failure mode
-  baseline.json     last recorded result, for diffing
+  prompt-check.mjs          prove a prompt change is an improvement
+  fixtures.mjs              fixed inputs, one per failure mode
+  baseline.json             last recorded result, for diffing
 .claude/skills/change-llm-prompt/SKILL.md
-design/             the board the visual language came from
-.env                your key — gitignored
-.env.example        the committed template
+design/                     the board the visual language came from
+.env                        your key — gitignored
+.env.example                the committed template
 ```
 
-Dependencies run one way: `config` and `util` depend on nothing, `state` and `render` sit on
-top of those, feature modules above those, and `app.js` wires it together. Nothing imports
-`app.js`.
+Dependencies run one way: `config` and `util` depend on nothing, `state` and `render` sit above
+those, feature modules above those, and `app.js` wires it together. Nothing imports `app.js`.
+`llm.js` is the only module that touches the network, so swapping provider is a one-file change
+in the browser and one function in the server.
+
+---
 
 ## Design
 
 The visual language comes from `design/Main.dc.html`, a board exported from a visual design
-canvas. Only the design was taken from it — the palette, type, borders and spacing. The
-product name and wording in that board were not used. The React runtime that renders the board
-live is not committed; it is in `Main-html.zip` alongside this folder.
+canvas. Only the design was taken from it — palette, type, borders, spacing. The product name
+and wording in that board were not used. The React runtime that renders the board live is not
+committed.
 
 | | |
 |---|---|
@@ -190,23 +204,34 @@ live is not committed; it is in `Main-html.zip` alongside this folder.
 | Interface type | Archivo 400–700 |
 
 House style: 2px black borders, square corners, flat fills, no shadows, and 11px uppercase
-micro-labels tracked at `0.14em`.
+micro-labels tracked at `0.14em`. Fonts load from Google Fonts and fall back to
+Helvetica/Arial offline without affecting layout. The board has no dark mode, so neither does
+the app.
 
-Due-date chips escalate through four states, using only brand colours:
+---
 
-```
-later     grey fill
-soon      white, black border
-today     lime fill
-overdue   black fill, lime text
-```
+## Privacy
 
-Fonts load from Google Fonts. Offline they fall back to Helvetica/Arial and the layout is
-unaffected. The design board has no dark mode, so neither does the app.
+Tasks and chat history live in this browser's `localStorage` and stay on this computer.
+**Clear All Data** deletes them; it cannot be undone.
 
-## What this does not do
+When you click **Extract Tasks** or **Ask**, the text goes to the server and on to OpenCode Zen
+over HTTPS.
 
-By design, v1 leaves out:
+### Honest limits
+
+- `localStorage` is **not encrypted**. Anyone with access to this computer and browser profile
+  can read the saved transcripts and tasks. Do not use this on a shared machine.
+- OpenCode Zen's terms are not an enterprise zero-data-retention agreement. For real client
+  transcripts, use a provider you have a contract with.
+- Deploying the Worker publicly puts your key behind a URL anyone can call. Add access control
+  before sharing it beyond a demo.
+
+---
+
+## Not in v1
+
+By design:
 
 - joining or recording meetings (Zoom, Teams, Meet)
 - integrations with Salesforce, HubSpot, Asana, Jira or Notion
