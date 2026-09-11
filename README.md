@@ -1,4 +1,6 @@
-# Post-Meeting Action Assistant
+# YOINK
+
+**Yoink the to-dos straight out of your meeting notes.**
 
 Paste or upload a meeting transcript. Get a checklist of action items with owners, deadlines,
 and the quote each one came from. Ask questions about what you owe and when.
@@ -38,7 +40,7 @@ Not published to GitHub Pages yet.
 
 ```
 index.html          markup only
-css/styles.css      all styling
+css/styles.css      all styling — YOINK brand from design/Main.dc.html
 js/
   app.js            entry point — wires the DOM, then boots
   config.js         constants: endpoint, model, size limits
@@ -91,7 +93,7 @@ Pages** — every file on a public site is readable by anyone who visits, includ
    - paste them
    - click **Upload notes…** and pick one or more files
    - drag files straight onto the box
-2. Click **Extract Tasks**. Takes a few seconds.
+2. Click **Yoink the tasks**. Takes a few seconds.
 3. Read the checklist. Each item shows:
    - the action
    - who owns it (`Me` means you)
@@ -135,7 +137,7 @@ chunks — the results are better anyway.
 Tasks, chat history and your API key are saved in this browser's `localStorage`. They stay on
 this computer. They are not sent anywhere except as described below.
 
-When you click **Extract Tasks** or **Ask**, the text is sent to Google's Gemini API over HTTPS,
+When you click **Yoink the tasks** or **Ask**, the text is sent to Google's Gemini API over HTTPS,
 straight from your browser to Google. It does not pass through any server belonging to this app,
 because this app has no server.
 
@@ -172,3 +174,39 @@ By design, v1 leaves out:
 - integrations with Salesforce, HubSpot, Asana, Jira or Notion
 - writing or sending email for you
 - shared workspaces, multiple users, permissions
+
+## Design
+
+The look comes from `design/Main.dc.html`, a brand board exported from a visual
+design canvas. It is a reference mockup, not code — the values were reimplemented
+in `css/styles.css` rather than copied.
+
+| | |
+|---|---|
+| Name | YOINK |
+| Line | Yoink the to-dos straight out of your meeting notes. |
+| Ink | `#0B0B0C` |
+| Accent | `#C8F31D` |
+| Background | `#F2F1EA` |
+| Muted | `#6E6E73` |
+| Rule / "later" chip | `#E4E2D8` |
+| Display type | Archivo Black |
+| Interface type | Archivo 400–700 |
+
+House style: 2px black borders, square corners, flat fills, no shadows, and
+11px uppercase micro-labels tracked at `0.14em`.
+
+Due-date chips escalate through four states, using only brand colours:
+
+```
+later     grey fill
+soon      white, black border
+today     lime fill
+overdue   black fill, lime text
+```
+
+Fonts load from Google Fonts. Offline they fall back to Helvetica/Arial and the
+layout is unaffected.
+
+The design board has no dark mode, so neither does the app — it commits to the
+one light look on purpose.
