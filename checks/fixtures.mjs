@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
-const { SAMPLE } = await import(pathToFileURL(path.join(root, "js", "sample.js")).href);
+const { SAMPLE } = await import(pathToFileURL(path.join(root, "public", "js", "sample.js")).href);
 
 /** The same meeting, written up by a second person in their own words. */
 const SECOND_ACCOUNT = [

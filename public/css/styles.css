@@ -56,6 +56,26 @@ header { background: var(--ink); border-bottom: var(--line); position: sticky; t
 @media (max-width: 720px) { .brand .tag { display: none; } }
 .hnote { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8A8A8F; }
 
+/* model picker, sitting on the black bar */
+#modelsel {
+  width: auto; margin-left: auto;
+  background: transparent; color: var(--surface);
+  border: 2px solid #4A4A4E; border-radius: 0;
+  padding: 5px 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  cursor: pointer;
+}
+#modelsel:hover { border-color: var(--accent); }
+#modelsel:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* the closed control is dark; the open list is drawn by the OS, so force
+   readable colours on the options too */
+#modelsel option { background: var(--surface); color: var(--ink); }
+
+/* visually hidden, still announced by screen readers */
+.sronly {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* ---------- buttons ---------- */
 button {
   font: inherit; font-weight: 600; cursor: pointer;

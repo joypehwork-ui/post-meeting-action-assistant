@@ -6,7 +6,35 @@ import { render, renderTasks, renderEdit } from "./render.js";
 import { addFiles, forgetFile, resetFiles } from "./files.js";
 import { doExtract } from "./extract.js";
 import { doAsk } from "./assistant.js";
+import { getModels } from "./llm.js";
 import { SAMPLE } from "./sample.js";
+
+/* ---------------- model picker ---------------- */
+
+// The list comes from the server, which only accepts models on its allowlist.
+// If it cannot be reached the picker stays hidden and the server default is used.
+async function initModelPicker() {
+  const sel = $("modelsel");
+  try {
+    const { models, default: fallback } = await getModels();
+    if (!Array.isArray(models) || !models.length) { sel.hidden = true; return; }
+
+    const known = models.some((m) => m.id === state.model);
+    if (!known) state.model = fallback || models[0].id;
+
+    sel.innerHTML = models
+      .map((m) => '<option value="' + m.id + '">' + m.label + "</option>")
+      .join("");
+    sel.value = state.model;
+
+    sel.onchange = () => {
+      state.model = sel.value;
+      save();
+    };
+  } catch (e) {
+    sel.hidden = true;   // no picker rather than a broken one
+  }
+}
 
 /* ---------------- ingestion ---------------- */
 
@@ -125,3 +153,4 @@ $("clearall").onclick = () => {
 
 load();
 render();
+initModelPicker();

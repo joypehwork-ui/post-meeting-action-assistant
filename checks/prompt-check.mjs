@@ -36,9 +36,9 @@ const REPEAT = Math.max(1, Number(flag("repeat", 1)));
 // Windows backslashes, and hand-rolled escaping has broken here before.
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 
-const { extractPrompt } = await load("js/extract.js");
-const { assistantPrompt } = await load("js/assistant.js");
-const { validateTasks, TASK_FIELDS } = await load("js/llm.js");
+const { extractPrompt } = await load("public/js/extract.js");
+const { assistantPrompt } = await load("public/js/assistant.js");
+const { validateTasks, TASK_FIELDS } = await load("public/js/llm.js");
 const { FIXTURES } = await load("checks/fixtures.mjs");
 
 let failures = 0;

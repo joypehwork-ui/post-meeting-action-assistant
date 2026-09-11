@@ -9,6 +9,7 @@ import { STORE } from "./config.js";
 import { dueInfo } from "./util.js";
 
 const blank = () => ({
+  model: "",        // "" = whatever the server defaults to
   tasks: [],
   chat: [],
   showDone: false,

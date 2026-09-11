@@ -4,7 +4,20 @@
 // Zen. Nothing about the provider — key, URL, model — is known here or anywhere
 // else in the browser.
 
+import { state } from "./state.js";
+
 const ENDPOINT = "/api/llm";
+
+/**
+ * The models the server will accept.
+ * The list is the server's, not ours — it is an allowlist, so asking for
+ * anything outside it just falls back to the server default.
+ */
+export async function getModels() {
+  const res = await fetch("/api/models");
+  if (!res.ok) throw new Error("Could not load the model list.");
+  return res.json();
+}
 
 /**
  * Ask the model.
@@ -19,7 +32,7 @@ export async function ask(messages, wantJson = false) {
     res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages, json: wantJson }),
+      body: JSON.stringify({ messages, json: wantJson, model: state.model || "" }),
     });
   } catch (e) {
     throw new Error("Could not reach the local server. Is `node serve.js` still running?");

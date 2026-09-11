@@ -19,10 +19,23 @@ const path = require("path");
 const crypto = require("crypto");
 
 const PORT = Number(process.argv[2]) || 3000;
-const ROOT = __dirname;
+const ROOT = __dirname;                       // .env, config
+const PUBLIC = path.join(__dirname, "public");   // everything served to the browser
 
 const LLM_URL = "https://opencode.ai/zen/go/v1/chat/completions";
 const DEFAULT_MODEL = "deepseek-v4.1-flash";
+
+// Models the UI may pick from. An allowlist, not a free-text field: the browser
+// must never be able to name an arbitrary model and spend the key on it.
+// All five verified working and billing at cost 0 on this endpoint.
+// Keep in step with the same list in worker.js.
+const MODELS = [
+  { id: "deepseek-v4.1-flash", label: "DeepSeek V4.1 Flash" },
+  { id: "qwen3.8-flash",       label: "Qwen 3.8 Flash" },
+  { id: "glm-5.3-flash",       label: "GLM 5.3 Flash" },
+  { id: "kimi-k2.6",           label: "Kimi K2.6" },
+  { id: "minimax-m2.5",        label: "MiniMax M2.5" },
+];
 // deepseek-v4.1-flash is a reasoning model: it spends completion tokens on
 // reasoning_content before writing any answer. Too low and `content` comes back
 // empty with finish_reason "length".
@@ -83,8 +96,8 @@ function serveStatic(rel, res) {
   // "/", "//" and any directory path all mean index.html.
   if (/(^\/*$)|\/$/.test(rel)) rel = "/index.html";
 
-  const file = path.join(ROOT, path.normalize(rel).replace(/^([/\\])+/, ""));
-  if (!file.startsWith(ROOT)) {
+  const file = path.join(PUBLIC, path.normalize(rel).replace(/^[/\\]+/, ""));
+  if (!file.startsWith(PUBLIC)) {
     res.writeHead(403).end("Forbidden");
     return;
   }
@@ -150,8 +163,12 @@ async function handleLlm(req, res) {
     return;
   }
 
+  // Honour the UI's choice only if it is on the allowlist.
+  const wanted = typeof body.model === "string" ? body.model : "";
+  const model = MODELS.some((m) => m.id === wanted) ? wanted : MODEL;
+
   const payload = {
-    model: MODEL,
+    model,
     messages,
     max_tokens: MAX_TOKENS,
     temperature: 0.2,
@@ -210,13 +227,18 @@ async function handleLlm(req, res) {
     return;
   }
 
-  json(res, 200, { text: content, finish_reason: choice.finish_reason || null });
+  json(res, 200, { text: content, model, finish_reason: choice.finish_reason || null });
 }
 
 /* ---------------- server ---------------- */
 
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+
+  if (url === "/api/models") {
+    json(res, 200, { models: MODELS, default: MODEL });
+    return;
+  }
 
   if (url === "/api/llm") {
     if (req.method !== "POST") {
