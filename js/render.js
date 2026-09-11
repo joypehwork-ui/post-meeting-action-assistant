@@ -1,18 +1,12 @@
 // All DOM writing lives here. Nothing in this module fetches or mutates state.
 
-import { state, envKey, openTasks, sortByDue } from "./state.js";
+import { state, openTasks, sortByDue } from "./state.js";
 import { $, esc, dueInfo } from "./util.js";
 
 export function render() {
   renderTasks();
   renderSoon();
   renderChat();
-  renderKeyState();
-}
-
-function renderKeyState() {
-  const source = state.apiKey ? "Key set" : (envKey ? "Key from .env" : "");
-  $("keystate").textContent = source ? source + " · " + state.model : "No API key — open Settings";
 }
 
 export function renderTasks() {

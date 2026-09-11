@@ -1,6 +1,6 @@
 // The follow-up question box.
 
-import { gemini } from "./gemini.js";
+import { ask } from "./llm.js";
 import { state, save, openTasks, sortByDue } from "./state.js";
 import { $, todayISO, showErr, clearErr } from "./util.js";
 import { renderChat } from "./render.js";
@@ -49,7 +49,7 @@ export async function doAsk(question) {
   renderChat();
 
   try {
-    const answer = await gemini(assistantPrompt(question, open), null);
+    const answer = await ask([{ role: "user", content: assistantPrompt(question, open) }], false);
     state.chat[state.chat.length - 1].a = String(answer).trim();
     save();
   } catch (e) {

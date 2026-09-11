@@ -1,19 +1,12 @@
 // Entry point: wires the DOM to the feature modules, then boots.
 
-import { DEFAULT_MODEL } from "./config.js";
-import { state, save, load, resetState, setEnvKey, effectiveKey, readEnvFile } from "./state.js";
+import { state, save, load, resetState } from "./state.js";
 import { $, clearErr } from "./util.js";
 import { render, renderTasks, renderEdit } from "./render.js";
 import { addFiles, forgetFile, resetFiles } from "./files.js";
 import { doExtract } from "./extract.js";
 import { doAsk } from "./assistant.js";
 import { SAMPLE } from "./sample.js";
-
-/* ---------------- settings ---------------- */
-
-$("togglesettings").onclick = () => { $("settings").hidden = !$("settings").hidden; };
-$("apikey").oninput = (e) => { state.apiKey = e.target.value.trim(); save(); render(); };
-$("model").oninput  = (e) => { state.model = e.target.value.trim() || DEFAULT_MODEL; save(); render(); };
 
 /* ---------------- ingestion ---------------- */
 
@@ -116,13 +109,11 @@ $("sugg").addEventListener("click", (e) => {
 /* ---------------- clear ---------------- */
 
 $("clearall").onclick = () => {
-  const ok = confirm("Delete all tasks, chat history and your saved API key from this browser? This cannot be undone.");
+  const ok = confirm("Delete all tasks and chat history from this browser? This cannot be undone.");
   if (!ok) return;
 
   resetState();
   resetFiles();
-  $("apikey").value = "";
-  $("model").value = DEFAULT_MODEL;
   $("input").value = "";
   $("exstatus").textContent = "";
   clearErr("exerr");
@@ -133,19 +124,4 @@ $("clearall").onclick = () => {
 /* ---------------- boot ---------------- */
 
 load();
-$("apikey").value = state.apiKey || "";
-$("model").value = state.model || DEFAULT_MODEL;
 render();
-
-readEnvFile().then((env) => {
-  if (env) {
-    if (env.GEMINI_API_KEY) setEnvKey(env.GEMINI_API_KEY);
-    if (env.GEMINI_MODEL && state.model === DEFAULT_MODEL) {
-      state.model = env.GEMINI_MODEL;
-      $("model").value = env.GEMINI_MODEL;
-      save();
-    }
-  }
-  if (!effectiveKey()) $("settings").hidden = false;
-  render();
-});

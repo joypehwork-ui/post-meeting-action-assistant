@@ -3,19 +3,21 @@
 Paste or upload a meeting transcript. Get a checklist of action items with owners, deadlines,
 and the quote each one came from. Ask questions about what you owe and when.
 
-No build step, no dependencies, no bundler. Plain ES modules served straight to the
-browser. It calls Google's Gemini API and nothing else.
+No build step, no dependencies, no bundler. Plain ES modules, and a small Node server that
+holds the API key and serves the files.
 
 ## What you need first
 
-A free Google AI Studio API key.
+An **OpenCode** API key, and Node 18 or newer (`node -v`).
 
-1. Go to https://aistudio.google.com/apikey
-2. Click **Create API key**.
-3. Copy the key. It starts with `AIza`.
+Put the key in `.env`:
 
-This is **not** the same as a Google Places or Google Maps key. A Places key will not work here —
-it returns HTTP 403.
+```
+OPENCODE_API_KEY=sk-...
+LLM_MODEL=deepseek-v4.1-flash
+```
+
+`.env` is gitignored. The key stays on the server — see below.
 
 ## How to run it
 
@@ -25,65 +27,21 @@ node serve.js
 
 Then open http://localhost:3000.
 
-**Do not double-click `index.html`.** The code is split into ES modules, and browsers
-refuse to load modules over `file://` — you get a blank page and a CORS error in the
-console. It has to be served. `serve.js` is a 45-line static server with no
-dependencies, bound to localhost only.
+**Do not double-click `index.html`.** Two reasons: the code is split into ES modules, which
+browsers refuse to load over `file://`, and the model call goes through the local server.
 
-Needs Node 18 or newer. Check with `node -v`.
+## Where the key lives
 
-Not published to GitHub Pages yet.
+`serve.js` reads `.env` at startup and exposes one route, `POST /api/llm`, which forwards to
+OpenCode Zen. The browser posts to that route. It never sees the key, never stores one, and
+there is nothing to paste into the UI.
 
-## File layout
+That is not just tidier, it is the only design that works here: **OpenCode Zen sends no CORS
+headers.** Its preflight returns 404 and its responses carry no `Access-Control-Allow-Origin`,
+so a browser cannot call it directly at all.
 
-```
-index.html          markup only
-css/styles.css      all styling — visual language from design/Main.dc.html
-js/
-  app.js            entry point — wires the DOM, then boots
-  config.js         constants: endpoint, model, size limits
-  state.js          app state, localStorage, .env reader
-  gemini.js         the only module that touches the network
-  extract.js        transcript -> action items
-  assistant.js      the follow-up question box
-  files.js          upload, drag-drop, .vtt/.srt cleaning
-  render.js         all DOM writing
-  util.js           escaping, dates, due-date ranking
-  sample.js         the demo transcript
-serve.js            local static server (only so .env can be read)
-.env                your API key — gitignored
-.env.example        the committed template
-```
-
-The dependency direction is one-way: `config` and `util` depend on nothing,
-`state` and `render` sit on top of those, feature modules sit on top of those,
-and `app.js` wires everything together. No module imports `app.js`.
-
-## Your API key: two options
-
-### Option 1 — the Settings panel
-
-1. Click **Settings** in the top bar.
-2. Paste your key into **Google AI Studio API key**.
-3. It is saved in this browser's `localStorage`. **Clear All Data** removes it.
-
-### Option 2 — the `.env` file
-
-Open `.env` and fill in the key:
-
-```
-GEMINI_API_KEY=AIza...your key here...
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-Reload the page. The top bar will say **Key from .env**.
-
-The key from `.env` is never copied into `localStorage`, so the file stays the one
-place the key lives. A key typed into Settings overrides the `.env` one.
-
-`.env` is listed in `.gitignore`. **Do not commit it, and do not deploy it to GitHub
-Pages** — every file on a public site is readable by anyone who visits, including `.env`.
-`.env.example` is the safe copy to commit.
+The server refuses to start without a key, and will not serve `.env` over HTTP even though it
+sits in the folder.
 
 ## How to use it
 
@@ -120,65 +78,106 @@ than subtitle scaffolding:
 <v Sarah>I'll get the deck to you by Thursday.
 ```
 
-Upload several files at once and they are joined with a `--- filename ---` header
-between them.
+Upload several files at once and they are joined with a `--- filename ---` header between
+them. The model merges a commitment that appears in more than one of them.
 
-**Word and PDF do not work.** `.docx` and `.pdf` are compressed binary formats and this
-app has no library to unpack them. You get a message telling you to export as `.txt` or
-paste the text. Adding `.docx` support is possible but is not in v1.
+**Word and PDF do not work.** `.docx` and `.pdf` are compressed binary formats and this app
+has no library to unpack them. You get a message telling you to export as `.txt` or paste the
+text.
 
-Anything over 200,000 characters is trimmed, with a warning. Extract long transcripts in
-chunks — the results are better anyway.
+Anything over 200,000 characters is trimmed, with a warning.
+
+## Changing a prompt
+
+The app's behaviour is two strings: `extractPrompt()` in `js/extract.js` and
+`assistantPrompt()` in `js/assistant.js`. **A prompt diff tells you nothing about whether the
+change worked**, so there is a harness:
+
+```sh
+node checks/prompt-check.mjs --save-baseline    # before editing
+node checks/prompt-check.mjs --repeat=3         # after
+```
+
+It imports the app's own modules, so it tests the prompt actually being sent. It checks the
+reply parses, matches the shape, has sane dates, has no duplicates, and — the one that
+matters — that every `context` is traceable to the source text, which is the machine-checkable
+form of "do not invent tasks".
+
+**Use `--repeat`.** The model is not deterministic. A fixture here failed, then passed on the
+next identical run; measured properly it was failing 3 times in 5.
+
+The full procedure is in `.claude/skills/change-llm-prompt/SKILL.md`, including a revision
+history of what each check was added to catch.
+
+## Changing the model
+
+Edit `LLM_MODEL` in `.env` and restart the server. Model names come from
+`https://opencode.ai/zen/go/v1/models`.
+
+Note that `deepseek-v4.1-flash` is a reasoning model: it spends output tokens thinking before
+it writes anything. `MAX_TOKENS` in `serve.js` is 12000 for that reason. At 4000 a two-file
+transcript failed about one run in three with an empty reply.
+
+## Using a different provider
+
+Change the `fetch` in `handleLlm()` in `serve.js`. Because the call is server-side, CORS is
+irrelevant and any provider works — which was not true of the earlier browser-side design.
+
+`js/llm.js` in the browser only knows about `/api/llm` and does not need to change.
 
 ## Where your data goes
 
-Tasks, chat history and your API key are saved in this browser's `localStorage`. They stay on
-this computer. They are not sent anywhere except as described below.
+Tasks and chat history are saved in this browser's `localStorage`. They stay on this computer.
 
-When you click **Extract Tasks** or **Ask**, the text is sent to Google's Gemini API over HTTPS,
-straight from your browser to Google. It does not pass through any server belonging to this app,
-because this app has no server.
+When you click **Extract Tasks** or **Ask**, the text goes to your local server and on to
+OpenCode Zen over HTTPS.
 
-**Clear All Data** deletes the tasks, the chat history and the saved API key from this browser.
-It cannot be undone.
+**Clear All Data** deletes the tasks and chat history from this browser. It cannot be undone.
 
 ### Honest limits
 
 - `localStorage` is **not encrypted**. Anyone with access to this computer and this browser
-  profile can read the saved transcripts, tasks and API key. Do not use this on a shared machine.
-- Google's data-retention terms for the free AI Studio tier are not the same as an enterprise
-  zero-data-retention agreement. For real client transcripts, use a paid Google Cloud Vertex AI
-  key or another provider under contract.
+  profile can read the saved transcripts and tasks. Do not use this on a shared machine.
+- OpenCode Zen's terms are not an enterprise zero-data-retention agreement. For real client
+  transcripts, use a provider you have a contract with.
 
-## Changing the model
+## File layout
 
-The Settings panel has a **Model** field. It defaults to `gemini-2.5-flash`. If that model name
-stops working you will see a `Gemini 404` message — put a current model name in that field.
-Model names are listed at https://ai.google.dev/gemini-api/docs/models
+```
+index.html          markup only
+css/styles.css      all styling — visual language from design/Main.dc.html
+js/
+  app.js            entry point — wires the DOM, then boots
+  config.js         storage key, file types, size limits
+  state.js          app state and localStorage
+  llm.js            the only module that talks to the model, via /api/llm
+  extract.js        transcript -> action items
+  assistant.js      the follow-up question box
+  files.js          upload, drag-drop, .vtt/.srt cleaning
+  render.js         all DOM writing
+  util.js           escaping, dates, due-date ranking
+  sample.js         the demo transcript
+serve.js            static files + POST /api/llm; holds the key
+checks/
+  prompt-check.mjs  prove a prompt change is an improvement
+  fixtures.mjs      fixed inputs, one per failure mode
+  baseline.json     last recorded result, for diffing
+.claude/skills/change-llm-prompt/SKILL.md
+design/             the board the visual language came from
+.env                your key — gitignored
+.env.example        the committed template
+```
 
-## Using OpenAI instead
-
-Replace the `gemini()` function in `js/gemini.js` — it is the only module that touches the
-network, so nothing else has to change. OpenAI also allows direct browser calls.
-Both `api.openai.com` and `generativelanguage.googleapis.com` return the CORS headers a browser
-needs. Most other providers do not — OpenCode Zen, for example, returns no
-`Access-Control-Allow-Origin` at all, so it cannot be called from a page like this.
-
-## What this does not do
-
-By design, v1 leaves out:
-
-- joining or recording meetings (Zoom, Teams, Meet)
-- integrations with Salesforce, HubSpot, Asana, Jira or Notion
-- writing or sending email for you
-- shared workspaces, multiple users, permissions
+Dependencies run one way: `config` and `util` depend on nothing, `state` and `render` sit on
+top of those, feature modules above those, and `app.js` wires it together. Nothing imports
+`app.js`.
 
 ## Design
 
-The visual language comes from `design/Main.dc.html`, a board exported from a visual
-design canvas. Only the design was taken from it — the palette, type, borders and
-spacing. The product name and wording in that board were not used. It is a reference mockup, not code — the values were reimplemented
-in `css/styles.css` rather than copied.
+The visual language comes from `design/Main.dc.html`, a board exported from a visual design
+canvas. Only the design was taken from it — the palette, type, borders and spacing. The
+product name and wording in that board were not used. The React runtime that renders the board
+live is not committed; it is in `Main-html.zip` alongside this folder.
 
 | | |
 |---|---|
@@ -190,8 +189,8 @@ in `css/styles.css` rather than copied.
 | Display type | Archivo Black |
 | Interface type | Archivo 400–700 |
 
-House style: 2px black borders, square corners, flat fills, no shadows, and
-11px uppercase micro-labels tracked at `0.14em`.
+House style: 2px black borders, square corners, flat fills, no shadows, and 11px uppercase
+micro-labels tracked at `0.14em`.
 
 Due-date chips escalate through four states, using only brand colours:
 
@@ -202,8 +201,14 @@ today     lime fill
 overdue   black fill, lime text
 ```
 
-Fonts load from Google Fonts. Offline they fall back to Helvetica/Arial and the
-layout is unaffected.
+Fonts load from Google Fonts. Offline they fall back to Helvetica/Arial and the layout is
+unaffected. The design board has no dark mode, so neither does the app.
 
-The design board has no dark mode, so neither does the app — it commits to the
-one light look on purpose.
+## What this does not do
+
+By design, v1 leaves out:
+
+- joining or recording meetings (Zoom, Teams, Meet)
+- integrations with Salesforce, HubSpot, Asana, Jira or Notion
+- writing or sending email for you
+- shared workspaces, multiple users, permissions

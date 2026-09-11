@@ -1,0 +1,98 @@
+{
+  "sample": [
+    {
+      "title": "Add enterprise tier to revised pricing deck",
+      "owner": "Sarah",
+      "due": "2026-09-17",
+      "dueText": "by Thursday"
+    },
+    {
+      "title": "Send security questionnaire to their IT team",
+      "owner": "Me",
+      "due": "2026-09-17",
+      "dueText": "before Friday"
+    },
+    {
+      "title": "Book 30 minutes with Raj to lock cutover window",
+      "owner": "Me",
+      "due": "2026-09-12",
+      "dueText": "tomorrow"
+    },
+    {
+      "title": "Chase legal on the redlined MSA",
+      "owner": "Me",
+      "due": "2026-09-13",
+      "dueText": "End of week at the latest"
+    },
+    {
+      "title": "Write up the rollback plan",
+      "owner": "Raj",
+      "due": "",
+      "dueText": ""
+    }
+  ],
+  "multifile": [
+    {
+      "title": "Add enterprise tier to revised pricing deck",
+      "owner": "Sarah",
+      "due": "2026-09-17",
+      "dueText": "by Thursday"
+    },
+    {
+      "title": "Send security questionnaire to their IT team",
+      "owner": "Me",
+      "due": "2026-09-17",
+      "dueText": "before Friday"
+    },
+    {
+      "title": "Book 30 minutes with Raj to lock cutover window",
+      "owner": "Me",
+      "due": "2026-09-12",
+      "dueText": "tomorrow"
+    },
+    {
+      "title": "Chase legal on redlined MSA",
+      "owner": "Me",
+      "due": "2026-09-11",
+      "dueText": "End of week at the latest"
+    },
+    {
+      "title": "Write up rollback plan once cutover window confirmed",
+      "owner": "Raj",
+      "due": "",
+      "dueText": ""
+    }
+  ],
+  "dated": [
+    {
+      "title": "Send revised pricing deck with enterprise tier",
+      "owner": "Sarah",
+      "due": "2026-09-03",
+      "dueText": "by Thursday"
+    },
+    {
+      "title": "Send security questionnaire to Acme IT team",
+      "owner": "Me",
+      "due": "2026-09-04",
+      "dueText": "before Friday"
+    },
+    {
+      "title": "Book 30 minutes with Raj to lock cutover window",
+      "owner": "Me",
+      "due": "2026-09-02",
+      "dueText": "tomorrow"
+    },
+    {
+      "title": "Chase legal on the redlined MSA",
+      "owner": "Me",
+      "due": "2026-09-04",
+      "dueText": "End of week at the latest"
+    },
+    {
+      "title": "Write up the rollback plan",
+      "owner": "Raj",
+      "due": "",
+      "dueText": ""
+    }
+  ]
+}
