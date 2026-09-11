@@ -3,7 +3,7 @@
 Paste or upload a meeting transcript. Get a checklist of action items with owners, deadlines,
 and the quote each one came from. Then ask questions about what you owe and when.
 
-Built for people in back-to-back meetings who lose action items between calls.
+Built for people with many meetings and action items to follow up.
 
 No build step, no bundler, no npm dependencies. Plain ES modules, plus a small Node server
 that holds the API key.
